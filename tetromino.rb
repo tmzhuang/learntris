@@ -48,12 +48,50 @@ class Tetromino
 			end
 			s += "\n"
 		end
-
 		s
+	end
+
+	def rotate(dir=:right)
+		# Pivot point (o for origin)
+		o = Array.new(2, (@size - 1) / 2.0)
+
+		# Get points in reference to o (d for difference)
+		d = @points.map do |p| [p.first - o.first , p.last - o.last] end
+
+		# Do rotation
+		r = []
+		case dir
+		when :right
+			d.each do |x,y|
+				r.push [y, -x]
+			end
+		when :left
+			d.each do |x,y|
+				r.push [-y, x]
+			end
+		end
+
+		# Convert points back to original reference
+		@points = r.map do |p| [p.first + o.first, p.last + o.last] end
 	end
 
 	if __FILE__ == $0
 		t = Tetromino.new("I")
 		puts t.to_s
+		t.rotate
+		puts t.to_s
+		t.rotate
+		puts t.to_s
+		t.rotate
+		puts t.to_s
+		t = Tetromino.new("S")
+		puts t.to_s
+		t.rotate
+		puts t.to_s
+		t.rotate
+		puts t.to_s
+		t.rotate
+		puts t.to_s
+
 	end
 end

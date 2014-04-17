@@ -1,130 +1,166 @@
 #!/usr/bin/env ruby
 require "./tetromino.rb"
-# Intializes $table to all '.'.
-def init_table
-	$table = Array.new($height) { Array.new($width, '.')}
-end
 
-# Prints each element of $table separated by a space.
-# Each row is separated by a newline character.
-def print_table
-	$table.each do |row|
-		row.each_with_index do |c, index|
-			if index != 0
-				print ' '
+class LearntrisGame
+	def initialize
+		# Height and width of table
+		@height = 22
+		@width = 10
+		@table = Array.new(@height) { Array.new(@width)}
+		reset_table
+
+		@score = 0
+		@cleared_lines = 0
+
+		@active_tetromino = nil
+	end
+
+	def to_s
+		s = ""
+		@table.each do |row|
+			row.each_with_index do |c, index|
+				if index != 0
+					s += ' '
+				end
+				s += c
 			end
-			print c
+			s += "\n"
 		end
-		print "\n"
+		s
 	end
-end
 
-# Accepts certain characters as commands:
-# String => nil
-# p: prints current table
-# q: exits program
-# g: reads input and updates table
-# ?n: print number of cleared lines
-# ?s: print score
-# s: checks for complete lines and removes them
-def handle_command(c)
-	case c
-	when "p"
-		print_table
-	when "q"
-		exit
-	when "g"
-		read_table
-	when "c"
-		init_table
-	when "?s"
-		puts $score
-	when "?n"
-		puts $cleared_lines
-	when "s"
-		update_table
-	when *Tetromino.types
-		$active_tetromino = Tetromino.new(c)
-	when "t"
-		puts $active_tetromino.to_s
-	end
-end
+	def spawn_tetromino(type)
+		@active_tetromino = Tetromino.new(type)
+		# active_tetromino_loc determines the location of the top left corner
+		# of the bouding box of the active tetromino (size by size large).
+		# The default location is to place it on the first row and centered
+		# horizontally (rounding down for sizes that are odd).
+		@active_tetromino_loc = [0, (@width - @active_tetromino.size) / 2]
 
-# Read table from input
-def read_table
-	$table.each_index do |i|
-		$table[i] = gets.split(" ")
-	end
-end
-
-# Return true if line is unbroken
-# (in other words, the row does not contain
-# a ".")
-# array => boolean
-def unbroken?(line)
-	line.each do |c|
-		if c == "."
-			return false
+		@active_tetromino.points.each do |a,b|
+			x = a + @active_tetromino_loc.first
+			y = b + @active_tetromino_loc.last
+			@table[x][y] = @active_tetromino.color.upcase
 		end
 	end
-	return true
-end
 
-# Takes an line and fills it with the 
-# same character (defaults ".")
-# array [char] => nil
-def clear(line, c=".")
-	line.each_index do |i|
-		line[i] = c
-	end
-end
-
-# Checks each row for a complete line.
-# If one is found, it is removed and replaced
-# with an empty line (filled with "."), and
-# increments n by 1, and s by 100
-def update_table
-	$table.each do |row|
-		if unbroken?(row)
-			clear(row)
-			$cleared_lines += 1
-			$score += 100
+	def reset_table(c = '.')
+		@table.each do |row|
+			row.fill(c)
 		end
 	end
-end
 
-# Inserts a tetromino onto the board
-def add_to_board(board, tet, loc)
-	
-end
 
-# Sets the active tetromino
-def set_active_tetromino(type)
-	$active_tetromino = Tetromino.new(type)
-end
+	# Accepts certain characters as commands:
+	# String => nil
+	# p: prints current table
+	# q: exits program
+	# g: reads input and updates table
+	# ?n: print number of cleared lines
+	# ?s: print score
+	# s: checks for complete lines and removes them
+	# Tetromino.types: "I","S","Z","T","L","J","O", sets
+	#   active_tetromino to a new of given type
+	# t: prints active_tetromino to screen
+	# ): rotates active_tetromino to right by 90 degress
+	def handle_command(c)
+		case c
+		when "p"
+			puts to_s
+		when "q"
+			exit
+		when "g"
+			read_table
+		when "c"
+			reset_table
+		when "?s"
+			puts @score
+		when "?n"
+			puts @cleared_lines
+		when "s"
+			update_table
+		when *Tetromino.types
+			spawn_tetromino(c)
+		when ")"
+			@active_tetromino.rotate
+		when "t"
+			puts @active_tetromino.to_s
+		when ";"
+			puts
+		when "P"
+			puts to_s
+		else
+			puts "Command " + c + " is invalid"
+		end
+	end
 
-# Entry point for script
-def main
-	# Height and width of table
-	$height = 22
-	$width = 10
-	$score = 0
-	$cleared_lines = 0
+	# Read table from input
+	def read_table
+		@table.each_index do |i|
+			@table[i] = gets.split(" ")
+		end
+	end
 
-	# Initialize table
-	init_table
+	# Return true if line is unbroken
+	# (in other words, the row does not contain
+	# a ".")
+	# array => boolean
+	def unbroken?(line)
+		line.each do |c|
+			if c == "."
+				return false
+			end
+		end
+		return true
+	end
 
-	# Loop forever and gets input
-	# ('q' quits the loop)
-	while true do 
-		inputs = gets.split
-		inputs.each do |c|
-			handle_command(c.strip)
+	# Takes an line and fills it with the 
+	# same character (defaults ".")
+	# array [char] => nil
+	def clear(line, c=".")
+		line.each_index do |i|
+			line[i] = c
+		end
+	end
+
+	# Checks each row for a complete line.
+	# If one is found, it is removed and replaced
+	# with an empty line (filled with "."), and
+	# increments n by 1, and s by 100
+	def update_table
+		@table.each do |row|
+			if unbroken?(row)
+				clear(row)
+				@cleared_lines += 1
+				@score += 100
+			end
+		end
+	end
+
+	def play
+		# Loop forever and gets input
+		# ('q' quits the loop)
+		while true do 
+			inputs = gets.split
+			
+			# Process input to get an array of single characters (except in the case where
+			# commands start with '?').
+			inputs.each_index do |i|
+				if not (inputs[i].size == 1 or inputs[i][0] == "?")
+					inputs[i] = inputs[i].split("")
+				end
+			end
+
+			# Handle each command in the array
+			inputs.flatten.each do |command|
+				handle_command command
+			end
 		end
 	end
 end
 
 if __FILE__ == $0
-	main
+	g = LearntrisGame.new
+	g.play
 end
 
