@@ -29,13 +29,14 @@ class LearntrisGame
 		s
 	end
 
-	def spawn_tetromino(type)
+	def spawn_tetromino(type, loc = nil)
 		@active_tetromino = Tetromino.new(type)
+		loc ||= [0, (@width - @active_tetromino.size) / 2]
 		# active_tetromino_loc determines the location of the top left corner
 		# of the bouding box of the active tetromino (size by size large).
 		# The default location is to place it on the first row and centered
 		# horizontally (rounding down for sizes that are odd).
-		@active_tetromino_loc = [0, (@width - @active_tetromino.size) / 2]
+		@active_tetromino_loc = loc
 
 		@active_tetromino.points.each do |a,b|
 			x = a + @active_tetromino_loc.first
@@ -50,12 +51,47 @@ class LearntrisGame
 		end
 	end
 
+	# Removes tetromino from the board
+	def delete_tetromino
+		# Iterate over each point of the tetromino and replace with 
+		# empty square 
+		@active_tetromino.points.each do |a,b|
+			x = a + @active_tetromino_loc.first
+			y = b + @active_tetromino_loc.last
+			@table[x][y] = "."
+		end
+		# Clears current location
+		@active_tetromino_loc = nil
+	end
+
+	def move_tetromino(dir)
+		loc = @active_tetromino_loc
+		type = @active_tetromino.type
+		delete_tetromino
+		case dir
+		when ">"
+			if loc.last < @width
+				loc[1] += 1
+			end
+		when "<"
+			if loc.last >= 0
+				loc[1] -= 1
+			end
+		when "v"
+			if loc.first < @height
+				loc[0] += 1
+			end
+		end
+		spawn_tetromino(type, loc)
+	end
+
 
 	# Accepts certain characters as commands:
 	# String => nil
 	# p: prints current table
 	# q: exits program
 	# g: reads input and updates table
+	# c: clears table
 	# ?n: print number of cleared lines
 	# ?s: print score
 	# s: checks for complete lines and removes them
@@ -89,6 +125,8 @@ class LearntrisGame
 			puts
 		when "P"
 			puts to_s
+		when ">", "<", "v"
+			move_tetromino(c)
 		else
 			puts "Command " + c + " is invalid"
 		end
