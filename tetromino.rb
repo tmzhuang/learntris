@@ -2,19 +2,25 @@
 class Tetromino
 	require "sqlite3"
 	require_relative "point"
-	attr_accessor :type, :color, :size, :points
+	attr_accessor :type, :color, :size, :loc
 
 	DATABASE_NAME = "tetromino.db"
 	TABLE_NAME = "tetromino"
 	@@db = SQLite3::Database.open(DATABASE_NAME)
 	@@types = @@db.execute("select tet_type from " + TABLE_NAME).flatten
 
-	def initialize(type)
+	def initialize(board, loc = nil, type)
+		@board = board
 		@type = type
 		@color = db_query("tet_color")
 		@size = db_query("tet_size")
+
+		loc ||= [0, (board.width - @size) / 2]
+		@loc = loc
+
 		# db_query returns a string and we want the actual array
 		@points = eval(db_query("tet_points"))
+		@@db.close
 	end
 
 	def db_query(attr)
@@ -29,6 +35,13 @@ class Tetromino
 
 	def self.types
 		@@types
+	end
+
+	def points
+		result = @points.map do |x,y|
+			x += loc.first
+			y += loc.last
+		end
 	end
 
 	def to_s
@@ -60,19 +73,27 @@ class Tetromino
 
 		# Do rotation
 		r = []
-		case dir
-		when :right
-			d.each do |x,y|
+		d.each do |x,y|
+			case dir
+			when :right
 				r.push [y, -x]
-			end
-		when :left
-			d.each do |x,y|
+			when :left
 				r.push [-y, x]
 			end
 		end
 
+		r = to_table_coords(r)
+
 		# Convert points back to original reference
 		@points = r.map do |p| [p.first + o.first, p.last + o.last] end
+	end
+
+	def to_table_coords(points)
+		result = []
+		points.each do |x,y|
+			result.push [x + @loc.first, y + @loc.last]
+		end
+		return result
 	end
 
 	if __FILE__ == $0
